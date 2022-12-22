@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "react-query";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Button,
   Center,
@@ -48,7 +48,23 @@ const Home = () => {
       }
     );
 
-  console.log("Data", data);
+  useEffect(() => {
+    let fetching = false;
+    const handleScroll = async (event) => {
+      const { scrollHeight, scrollTop, clientHeight } =
+        event.target.scrollingElement;
+      if (!fetching && scrollHeight - scrollTop <= clientHeight * 1.2) {
+        fetching = true;
+        if (hasNextPage) await fetchNextPage();
+        fetching = false;
+      }
+    };
+    document.addEventListener("scroll", handleScroll);
+    return () => {
+      document.removeEventListener("scroll", handleScroll);
+    };
+  }, [fetchNextPage, hasNextPage]);
+
   const { isLoading: isMutating, mutateAsync } = useMutation(
     "deletePost",
     deletePost,
@@ -141,10 +157,11 @@ const Home = () => {
           )}
 
           <Center mb="20px">
-            {hasNextPage && (
+            {isFetching && "Loading..."}
+            {/* {hasNextPage && (
               <Button
                 isLoading={isFetching}
-                loadingText="Loading"
+                loadingText="Loading.."
                 colorScheme="teal"
                 variant="outline"
                 spinnerPlacement="start"
@@ -152,7 +169,7 @@ const Home = () => {
               >
                 Load More
               </Button>
-            )}
+            )} */}
           </Center>
         </>
       )}
