@@ -1,7 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "react-query";
 import React from "react";
 import {
   Button,
+  Center,
   Container,
   Flex,
   Grid,
@@ -13,22 +19,36 @@ import {
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import AddNewPost from "../components/AddNewPost";
-import { deletePost, fetchPosts } from "../api";
+import { deletePost, fetchInfinityPosts, fetchPosts } from "../api";
 
 const Home = () => {
   const cache = useQueryClient();
   const toast = useToast();
-  const { data, isLoading } = useQuery(
-    ["posts"],
-    () => fetchPosts(),
-    {
-      keepPreviousData: true,
-      onError: (error) => {
-        toast({ status: "error", title: error.message });
-      },
-    }
-  );
+  // const { data, isLoading } = useQuery(
+  //   ["posts"],
+  //   () => fetchPosts(),
+  //   {
+  //     keepPreviousData: true,
+  //     onError: (error) => {
+  //       toast({ status: "error", title: error.message });
+  //     },
+  //   }
+  // );
 
+  const { data, isLoading, isFetching, fetchNextPage, hasNextPage } =
+    useInfiniteQuery(
+      ["posts"],
+      ({ pageParam = 1 }) => fetchInfinityPosts(pageParam),
+      {
+        getNextPageParam: (lastPage, pages) => {
+          if (lastPage.meta.pagination.page < lastPage.meta.pagination.pages)
+            return lastPage.meta.pagination.page + 1;
+          return false;
+        },
+      }
+    );
+
+  console.log("Data", data);
   const { isLoading: isMutating, mutateAsync } = useMutation(
     "deletePost",
     deletePost,
@@ -52,7 +72,7 @@ const Home = () => {
         <>
           <AddNewPost />
 
-          {data.data.map((post) => (
+          {/* {data.data.map((post) => (
             <Stack
               key={post.id}
               p="4"
@@ -75,15 +95,65 @@ const Home = () => {
               <Link to={`/post/${post.id}`}>
                 <Stack>
                   <Flex justify="space-between">
-                  <Heading fontSize="2xl">{post.title}</Heading>
+                    <Text>UserId: {post.user_id}</Text>
                     <Text>PostId: {post.id}</Text>
                   </Flex>
-                  
+                  <Heading fontSize="2xl">{post.title}</Heading>
                   <Text>{post.body}</Text>
                 </Stack>
               </Link>
             </Stack>
-          ))}
+          ))} */}
+
+          {data.pages.map((page) =>
+            page.data.map((post) => (
+              <Stack
+                key={post.id}
+                p="4"
+                boxShadow="md"
+                borderRadius="xl"
+                border="1px solid #ccc"
+                mb="4"
+              >
+                <Flex justify="flex-end">
+                  <Button
+                    size="sm"
+                    isLoading={isMutating}
+                    onClick={async () => {
+                      await mutateAsync({ id: post.id });
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Flex>
+                <Link to={`/post/${post.id}`}>
+                  <Stack>
+                    <Flex justify="space-between">
+                      <Text>UserId: {post.user_id}</Text>
+                      <Text>PostId: {post.id}</Text>
+                    </Flex>
+                    <Heading fontSize="2xl">{post.title}</Heading>
+                    <Text>{post.body}</Text>
+                  </Stack>
+                </Link>
+              </Stack>
+            ))
+          )}
+
+          <Center mb="20px">
+            {hasNextPage && (
+              <Button
+                isLoading={isFetching}
+                loadingText="Loading"
+                colorScheme="teal"
+                variant="outline"
+                spinnerPlacement="start"
+                onClick={fetchNextPage}
+              >
+                Load More
+              </Button>
+            )}
+          </Center>
         </>
       )}
     </Container>

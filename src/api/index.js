@@ -37,7 +37,16 @@ export const deletePost = async ({ id }) => {
 
 export const fetchPosts = async () => {
   try {
-    const { data } = await api.get("/users/1891/posts");
+    const { data } = await api.get("/posts");
+    return data;
+  } catch (error) {
+    throw Error("Unable to fetch Posts");
+  }
+};
+
+export const fetchInfinityPosts = async (pageParam) => {
+  try {
+    const { data } = await api.get("/posts?page=" + pageParam);
     return data;
   } catch (error) {
     throw Error("Unable to fetch Posts");
@@ -46,7 +55,7 @@ export const fetchPosts = async () => {
 
 export const fetchPost = async (id) => {
   try {
-    const { data } = await api.get("/posts/"+id);
+    const { data } = await api.get("/posts/" + id);
     return data;
   } catch (error) {
     throw Error("Unable to fetch Post");
